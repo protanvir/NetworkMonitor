@@ -9,3 +9,5 @@ services:
       - .:/app
     env_file:
       - .env
+    environment:
+      - TZ=Asia/Dhaka

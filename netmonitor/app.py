@@ -309,7 +309,7 @@ def add_device():
         conn.commit()
         conn.close()
         
-    return redirect(url_for('index'))
+    return redirect(url_for('admin'))
 
 @app.route('/edit/<int:id>', methods=['POST'])
 def edit_device(id):
