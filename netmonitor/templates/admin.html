@@ -23,6 +23,36 @@
                 <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Back to Monitor</a>
             </div>
         </div>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Notification Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('update_settings') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Alert Email Address</label>
+                                    <input type="email" class="form-control" name="alert_email" 
+                                           value="{{ settings.get('alert_email', '') }}" 
+                                           placeholder="admin@example.com">
+                                    <div class="form-text">Alerts will be sent to this email.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">WhatsApp Recipient Number</label>
+                                    <input type="text" class="form-control" name="whatsapp_recipient" 
+                                           value="{{ settings.get('whatsapp_recipient', '') }}" 
+                                           placeholder="e.g. 1234567890">
+                                    <div class="form-text">Alerts will be sent to this WhatsApp number.</div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="row">
             <!-- Categories Section -->

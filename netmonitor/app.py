@@ -87,12 +87,38 @@ def init_db():
     if 'icon' not in cat_columns:
         conn.execute('ALTER TABLE categories ADD COLUMN icon TEXT')
 
+    # Create settings table
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def get_setting(key, default=None):
+    try:
+        conn = get_db_connection()
+        row = conn.execute('SELECT value FROM settings WHERE key = ?', (key,)).fetchone()
+        conn.close()
+        return row['value'] if row else default
+    except Exception:
+        return default
+
+def set_setting(key, value):
+    conn = get_db_connection()
+    conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, value))
     conn.commit()
     conn.close()
 
 def send_email_alert(device_name, device_ip):
-    if not SMTP_USER or not SMTP_PASS or not ALERT_EMAIL:
-        print("SMTP credentials not set, skipping email alert.")
+    # Fetch from DB first, fall back to ENV
+    alert_email = get_setting('alert_email') or ALERT_EMAIL
+    
+    if not SMTP_USER or not SMTP_PASS or not alert_email:
+        print("SMTP credentials or Alert Email not set, skipping email alert.")
         return
 
     try:
@@ -107,15 +133,20 @@ def send_email_alert(device_name, device_ip):
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
         server.login(SMTP_USER, SMTP_PASS)
-        server.sendmail(SMTP_USER, ALERT_EMAIL, msg.as_string())
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_USER, alert_email, msg.as_string())
         server.quit()
         print(f"Alert email sent for {device_name} ({device_ip})")
     except Exception as e:
         print(f"Failed to send email alert: {e}")
 
 def send_whatsapp_alert(device_name, device_ip):
-    if not WA_API_KEY or not WA_INSTANCE_ID or not WA_RECIPIENT:
-        print("WhatsApp credentials not set, skipping WhatsApp alert.")
+    # Fetch from DB first, fall back to ENV
+    wa_recipient = get_setting('whatsapp_recipient') or WA_RECIPIENT
+    
+    if not WA_API_KEY or not WA_INSTANCE_ID or not wa_recipient:
+        print("WhatsApp credentials or Recipient not set, skipping WhatsApp alert.")
         return
 
     try:
@@ -124,7 +155,7 @@ def send_whatsapp_alert(device_name, device_ip):
             "API-Key": WA_API_KEY
         }
         payload = {
-            "recipient": WA_RECIPIENT,
+            "recipient": wa_recipient,
             "content": f"ALERT: Device {device_name} ({device_ip}) is Offline at {time.strftime('%Y-%m-%d %H:%M:%S')}",
             "instance_id": WA_INSTANCE_ID
         }
@@ -249,8 +280,28 @@ def admin():
     conn = get_db_connection()
     categories = conn.execute('SELECT * FROM categories').fetchall()
     locations = conn.execute('SELECT * FROM locations').fetchall()
+    
+    # helper to get settings inside route
+    rows = conn.execute('SELECT * FROM settings').fetchall()
+    settings = {row['key']: row['value'] for row in rows}
+    
     conn.close()
-    return render_template('admin.html', categories=categories, locations=locations)
+    return render_template('admin.html', categories=categories, locations=locations, settings=settings)
+
+@app.route('/admin/settings/update', methods=['POST'])
+def update_settings():
+    alert_email = request.form.get('alert_email')
+    whatsapp_recipient = request.form.get('whatsapp_recipient')
+    
+    conn = get_db_connection()
+    if alert_email is not None:
+        conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ('alert_email', alert_email))
+    if whatsapp_recipient is not None:
+        conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', ('whatsapp_recipient', whatsapp_recipient))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('admin'))
 
 @app.route('/admin/category/add', methods=['POST'])
 def add_category():
@@ -379,4 +430,4 @@ if __name__ == '__main__':
     monitor_thread = threading.Thread(target=monitor_devices, daemon=True)
     monitor_thread.start()
     
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=9000)
