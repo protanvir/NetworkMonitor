@@ -1,6 +1,6 @@
 # Network Monitor
 
-A comprehensive network monitoring solution built with Python (Flask) and Bootstrap 5. This application monitors the status (Online/Offline) of network devices via ICMP ping, organizes them by category and location, and sends email alerts when devices go offline.
+A comprehensive network monitoring solution built with Python (Flask) and Bootstrap 5. This application monitors the status (Online/Offline) of network devices via ICMP ping, organizes them by category and location, and sends email and WhatsApp alerts when devices go offline.
 
 ## Features
 
@@ -14,7 +14,10 @@ A comprehensive network monitoring solution built with Python (Flask) and Bootst
     -   Manage **Categories** with custom Bootstrap Icons.
     -   Manage **Locations**.
     -   Edit Device details (Name, IP, Category, Location).
--   **Alerts**: Email notifications via SMTP (configured for Office 365, adaptable to others) when a device changes status.
+-   **Alerts**: 
+    -   **Email**: Notifications via SMTP (configured for Office 365, adaptable to others).
+    -   **WhatsApp**: Messages via WhatsApp Cloud API.
+    -   **Configurable Recipients**: Manage Alert Email and WhatsApp Number directly from the Admin Dashboard.
 -   **Dockerized**: Fully containerized for easy deployment.
 
 ## Prerequisites
@@ -41,7 +44,7 @@ A comprehensive network monitoring solution built with Python (Flask) and Bootst
     docker-compose up -d --build
     ```
 
-4.  Access the dashboard at `http://localhost:5000`.
+4.  Access the dashboard at `http://localhost:9000`.
 
 ### Option 2: Local Python Setup
 
@@ -70,14 +73,20 @@ SMTP_SERVER=smtp.office365.com
 SMTP_PORT=587
 SMTP_USER=your-email@domain.com
 SMTP_PASS=your-password
-ALERT_EMAIL=recipient@domain.com
+ALERT_EMAIL=recipient@domain.com  # Optional default, can be overridden in Admin
+
+# WhatsApp Alerts
+WA_API_KEY=your-api-key
+WA_INSTANCE_ID=your-instance-id
+WA_RECIPIENT=1234567890  # Optional default, can be overridden in Admin
 ```
 
 ## Usage
 
 1.  **Add Devices**: Click "Add Device" on the dashboard. Enter Name, IP, and assign a Category/Location.
 2.  **Manage Categories**: Go to "Admin" to create new categories (e.g., "Server", "Printer") and assign icons (e.g., `bi-printer`).
-3.  **Monitor**: The dashboard updates automatically. If a device goes offline, an email is triggered (if configured).
+3.  **Configure Alerts**: In the Admin section, use the "Notification Settings" verify or update the Alert Email and WhatsApp Number.
+4.  **Monitor**: The dashboard updates automatically. If a device goes offline, alerts are triggered (via Email and WhatsApp).
 
 ## License
 
