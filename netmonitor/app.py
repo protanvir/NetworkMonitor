@@ -9,6 +9,8 @@ from flask import Flask, render_template, request, redirect, url_for
 from pythonping import ping
 from dotenv import load_dotenv
 
+import requests
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -20,6 +22,11 @@ SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
 SMTP_USER = os.environ.get('SMTP_USER', '')
 SMTP_PASS = os.environ.get('SMTP_PASS', '')
 ALERT_EMAIL = os.environ.get('ALERT_EMAIL', '')
+
+# WhatsApp Configuration
+WA_API_KEY = os.environ.get('WA_API_KEY', '')
+WA_INSTANCE_ID = os.environ.get('WA_INSTANCE_ID', '')
+WA_RECIPIENT = os.environ.get('WA_RECIPIENT', '')
 
 # Ensure data directory exists
 os.makedirs(os.path.dirname(DB_PATH) if os.path.dirname(DB_PATH) else '.', exist_ok=True)
@@ -106,6 +113,32 @@ def send_email_alert(device_name, device_ip):
     except Exception as e:
         print(f"Failed to send email alert: {e}")
 
+def send_whatsapp_alert(device_name, device_ip):
+    if not WA_API_KEY or not WA_INSTANCE_ID or not WA_RECIPIENT:
+        print("WhatsApp credentials not set, skipping WhatsApp alert.")
+        return
+
+    try:
+        url = "https://api.wacloud.app/send-message"
+        headers = {
+            "API-Key": WA_API_KEY
+        }
+        payload = {
+            "recipient": WA_RECIPIENT,
+            "content": f"ALERT: Device {device_name} ({device_ip}) is Offline at {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            "instance_id": WA_INSTANCE_ID
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        
+        if response.status_code == 200 and response.json().get('success'):
+             print(f"WhatsApp alert sent for {device_name} ({device_ip})")
+        else:
+             print(f"Failed to send WhatsApp alert. Status: {response.status_code}, Response: {response.text}")
+
+    except Exception as e:
+        print(f"Failed to send WhatsApp alert: {e}")
+
 def monitor_devices():
     print("Starting background monitor thread...")
     while True:
@@ -132,6 +165,7 @@ def monitor_devices():
                 # Check for status change trigger
                 if current_status == "Online" and new_status == "Offline":
                     send_email_alert(name, ip)
+                    send_whatsapp_alert(name, ip)
                 
                 # Update DB
                 timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
